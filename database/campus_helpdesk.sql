@@ -83,7 +83,6 @@ CREATE TABLE `classrooms` (
     `room_number`  VARCHAR(50) NOT NULL UNIQUE,
     `building`     VARCHAR(50) NOT NULL,
     `floor`        INT NOT NULL,
-    `qr_token`     VARCHAR(255) NOT NULL UNIQUE,
     `is_active`    TINYINT(1) NOT NULL DEFAULT 1,
     `created_at`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -246,13 +245,13 @@ VALUES
 
 -- ---- 3.4. classrooms ---------------------------------------------------------
 INSERT INTO `classrooms` 
-    (`classroom_id`, `room_number`, `building`, `floor`, `qr_token`, `is_active`) 
+    (`classroom_id`, `room_number`, `building`, `floor`, `is_active`) 
 VALUES
-(1, 'A1-201', 'Building A1', 2, 'QR_A1201_SECURE_TOKEN_9A8B', 1),
-(2, 'A1-202', 'Building A1', 2, 'QR_A1202_SECURE_TOKEN_7C6D', 1),
-(3, 'B2-301', 'Building B2', 3, 'QR_B2301_SECURE_TOKEN_5E4F', 1),
-(4, 'B2-405', 'Building B2', 4, 'QR_B2405_SECURE_TOKEN_3G2H', 1),
-(5, 'C1-102', 'Building C1', 1, 'QR_C1102_SECURE_TOKEN_1I0J', 0);
+(1, 'A1-201', 'Building A1', 2, 1),
+(2, 'A1-202', 'Building A1', 2, 1),
+(3, 'B2-301', 'Building B2', 3, 1),
+(4, 'B2-405', 'Building B2', 4, 1),
+(5, 'C1-102', 'Building C1', 1, 0);
 
 -- ---- 3.5. assets -------------------------------------------------------------
 INSERT INTO `assets` 
