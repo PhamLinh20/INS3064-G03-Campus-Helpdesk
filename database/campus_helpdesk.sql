@@ -1,6 +1,6 @@
 -- ============================================================================
 -- CAMPUS HELPDESK – IT & FACILITY TICKET SYSTEM
--- Final Complete Database Script (All 12 Tables)
+-- Final Complete Database Script (All 12 Tables - Updated)
 -- Environment: MariaDB 10.4+ / MySQL 8.0.16+ (InnoDB, utf8mb4)
 -- Demo Password for all users: Helpdesk@123
 -- ============================================================================
@@ -52,7 +52,8 @@ CREATE TABLE `users` (
     `updated_at`    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     CONSTRAINT `fk_users_department` FOREIGN KEY (`department_id`) REFERENCES `departments`(`department_id`) ON DELETE RESTRICT,
     CONSTRAINT `chk_users_email_format` CHECK (`email` LIKE '%_@_%._%'),
-    CONSTRAINT `chk_users_dept_by_role` CHECK (`role` NOT IN ('Manager', 'Technician') OR `department_id` IS NOT NULL),
+    -- Only Technician strictly requires department_id; Centralized Manager can be NULL
+    CONSTRAINT `chk_users_dept_by_role` CHECK (`role` <> 'Technician' OR `department_id` IS NOT NULL),
     CONSTRAINT `chk_users_is_active` CHECK (`is_active` IN (0, 1))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -84,7 +85,8 @@ CREATE TABLE `classrooms` (
     `building`     VARCHAR(50) NOT NULL,
     `floor`        INT NOT NULL,
     `is_active`    TINYINT(1) NOT NULL DEFAULT 1,
-    `created_at`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+    `created_at`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `updated_at`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 1.5. Table: assets
@@ -93,10 +95,12 @@ CREATE TABLE `assets` (
     `asset_code`   VARCHAR(50) NOT NULL UNIQUE,
     `asset_name`   VARCHAR(100) NOT NULL,
     `classroom_id` INT NOT NULL,
+    `category_id`  INT NOT NULL,
     `status`       ENUM('Active', 'Faulty', 'Under_Repair', 'Decommissioned') NOT NULL DEFAULT 'Active',
     `fault_count`  INT NOT NULL DEFAULT 0,
     `created_at`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT `fk_assets_classroom` FOREIGN KEY (`classroom_id`) REFERENCES `classrooms`(`classroom_id`) ON DELETE RESTRICT
+    CONSTRAINT `fk_assets_classroom` FOREIGN KEY (`classroom_id`) REFERENCES `classrooms`(`classroom_id`) ON DELETE RESTRICT,
+    CONSTRAINT `fk_assets_category` FOREIGN KEY (`category_id`) REFERENCES `ticket_categories`(`category_id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
@@ -122,9 +126,9 @@ CREATE TABLE `tickets` (
     `ticket_id`    INT AUTO_INCREMENT PRIMARY KEY,
     `ticket_code`  VARCHAR(20) NOT NULL UNIQUE,
     `creator_id`   INT NOT NULL,
-    `category_id`  INT NOT NULL,
     `classroom_id` INT NOT NULL,
     `asset_id`     INT NULL,
+    `category_id`  INT NOT NULL,
     `title`        VARCHAR(200) NOT NULL,
     `description`  TEXT NOT NULL,
     `image_path`   VARCHAR(255) NULL,
@@ -132,11 +136,12 @@ CREATE TABLE `tickets` (
     `status`       ENUM('Pending', 'Assigned', 'Received', 'In_Progress', 'Completed', 'Closed') NOT NULL DEFAULT 'Pending',
     `created_at`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `updated_at`   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    `resolved_at`  DATETIME NULL,
     `closed_at`    DATETIME NULL,
     CONSTRAINT `fk_tickets_creator` FOREIGN KEY (`creator_id`) REFERENCES `users`(`user_id`) ON DELETE RESTRICT,
-    CONSTRAINT `fk_tickets_category` FOREIGN KEY (`category_id`) REFERENCES `ticket_categories`(`category_id`) ON DELETE RESTRICT,
     CONSTRAINT `fk_tickets_classroom` FOREIGN KEY (`classroom_id`) REFERENCES `classrooms`(`classroom_id`) ON DELETE RESTRICT,
-    CONSTRAINT `fk_tickets_asset` FOREIGN KEY (`asset_id`) REFERENCES `assets`(`asset_id`) ON DELETE SET NULL
+    CONSTRAINT `fk_tickets_asset` FOREIGN KEY (`asset_id`) REFERENCES `assets`(`asset_id`) ON DELETE SET NULL,
+    CONSTRAINT `fk_tickets_category` FOREIGN KEY (`category_id`) REFERENCES `ticket_categories`(`category_id`) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- 2.3. Table: ticket_assignments
@@ -192,6 +197,7 @@ CREATE TABLE `escalation_logs` (
     `escalated_to`    INT NULL,
     `is_resolved`     TINYINT(1) NOT NULL DEFAULT 0,
     `created_at`      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `resolved_at`     DATETIME NULL,
     CONSTRAINT `fk_el_ticket` FOREIGN KEY (`ticket_id`) REFERENCES `tickets`(`ticket_id`) ON DELETE CASCADE,
     CONSTRAINT `fk_el_technician` FOREIGN KEY (`technician_id`) REFERENCES `users`(`user_id`) ON DELETE SET NULL,
     CONSTRAINT `fk_el_manager` FOREIGN KEY (`escalated_to`) REFERENCES `users`(`user_id`) ON DELETE SET NULL
@@ -206,12 +212,13 @@ CREATE TABLE `satisfaction_surveys` (
     `feedback_comment` TEXT NULL,
     `created_at`       DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT `fk_ss_ticket` FOREIGN KEY (`ticket_id`) REFERENCES `tickets`(`ticket_id`) ON DELETE CASCADE,
-    CONSTRAINT `fk_ss_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE RESTRICT
+    CONSTRAINT `fk_ss_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`user_id`) ON DELETE RESTRICT,
+    CONSTRAINT `chk_ss_rating` CHECK (`rating_stars` BETWEEN 1 AND 5)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 
 -- ============================================================================
--- 3. SEED DATA (ONLY FOR 5 MASTER DATA TABLES)
+-- 3. SEED DATA (MASTER DATA FOR TESTING & DEMO)
 -- ============================================================================
 
 -- ---- 3.1. departments --------------------------------------------------------
@@ -223,25 +230,25 @@ VALUES
 (3, 'ACA', 'Academic Affairs Office','Timetables, rooms, documents, grades', 'academic@campus.edu.vn', '02438889999', 1);
 
 -- ---- 3.2. users (Password for all: Helpdesk@123) -----------------------------
+-- MGR001 configured as Centralized Helpdesk Manager (department_id = NULL)
 INSERT INTO `users` 
     (`user_id`, `user_code`, `full_name`, `email`, `password_hash`, `phone`, `role`, `department_id`, `is_active`) 
 VALUES
-(1, 'MGR001', 'Tran Minh Quan',    'manager.it@campus.edu.vn',  '$2y$10$zq4x.RHDAlofXP55PQufZ.CmyFyesqc9GOJtqh3AWGAhr2Xp9U5am', '0901000001', 'Manager',    1, 1),
-(2, 'MGR002', 'Le Thi Hong Nhung', 'manager.fac@campus.edu.vn', '$2y$10$UcAq4svSOFYfFdk1S8fOdOMHl/NhtU837u8lo4ipv..tyNvNrYIo.', '0901000002', 'Manager',    2, 1),
-(3, 'TECH001','Nguyen Duc Anh',    'tech.it1@campus.edu.vn',    '$2y$10$tisTx/pm.QKSoFQQ59mHEuWqWQ0JxDBmK8vc/4fG47B0obvIABmr.', '0901000003', 'Technician', 1, 1),
-(4, 'TECH002','Hoang Van Hung',    'tech.fac1@campus.edu.vn',   '$2y$10$0E.NKHOLZlUcdWejuK1wxu1JXyQKlzwJjBAOzWHY4CIHW2W8oA1Ve', '0901000004', 'Technician', 2, 1),
-(5, 'LEC001', 'Nguyen Thi Hai Yen','lecturer1@campus.edu.vn',   '$2y$10$cTlOttQ1ayLWazC5aGt10u3zpo2FqjqbJPBwDr94S2zVMIZOC8sra', '0902000001', 'Lecturer',   NULL, 1),
-(6, '23070001','Nguyen Minh Khoi', 'student1@campus.edu.vn',    '$2y$10$DtE6qoS6iLxRhw1c5PB45eCmxc6oJgZ1o6.jMzNCMae1t/jJl8Yy2', '0903000001', 'Student',    NULL, 1);
+(1, 'MGR001', 'Tran Minh Quan',    'manager@campus.edu.vn',     '$2y$10$zq4x.RHDAlofXP55PQufZ.CmyFyesqc9GOJtqh3AWGAhr2Xp9U5am', '0901000001', 'Manager',    NULL, 1),
+(2, 'TECH001','Nguyen Duc Anh',    'tech.it1@campus.edu.vn',    '$2y$10$tisTx/pm.QKSoFQQ59mHEuWqWQ0JxDBmK8vc/4fG47B0obvIABmr.', '0901000003', 'Technician', 1,    1),
+(3, 'TECH002','Hoang Van Hung',    'tech.fac1@campus.edu.vn',   '$2y$10$0E.NKHOLZlUcdWejuK1wxu1JXyQKlzwJjBAOzWHY4CIHW2W8oA1Ve', '0901000004', 'Technician', 2,    1),
+(4, 'LEC001', 'Nguyen Thi Hai Yen','lecturer1@campus.edu.vn',   '$2y$10$cTlOttQ1ayLWazC5aGt10u3zpo2FqjqbJPBwDr94S2zVMIZOC8sra', '0902000001', 'Lecturer',   NULL, 1),
+(5, '23070001','Nguyen Minh Khoi', 'student1@campus.edu.vn',    '$2y$10$DtE6qoS6iLxRhw1c5PB45eCmxc6oJgZ1o6.jMzNCMae1t/jJl8Yy2', '0903000001', 'Student',    NULL, 1);
 
 -- ---- 3.3. ticket_categories --------------------------------------------------
 INSERT INTO `ticket_categories` 
     (`category_id`, `department_id`, `category_code`, `category_name`, `routing_keywords`, `default_priority`, `sla_response_minutes`, `sla_resolution_minutes`) 
 VALUES
-(1, 1, 'IT_NETWORK',    'Network & WiFi',               'wifi,network,internet,lan', 'High', 30, 240),
-(2, 1, 'IT_SOFTWARE',   'Software & Operating System',  'software,install,os,windows', 'Medium', 60, 240),
-(3, 2, 'FAC_PROJECTOR', 'Projectors & Display',         'projector,display,hdmi,screen', 'High', 30, 180),
-(4, 2, 'FAC_AIRCON',    'Air Conditioning & Cooling',   'air conditioner,ac,hot,leaking', 'Medium', 60, 360),
-(5, 2, 'FAC_SOUND',     'Microphones & Audio',          'mic,microphone,speaker,sound', 'Critical', 15, 60);
+(1, 1, 'IT_NETWORK',    'Network & WiFi',               'wifi,network,internet,lan',      'High',     30, 240),
+(2, 1, 'IT_SOFTWARE',   'Software & Operating System',  'software,install,os,windows',    'Medium',   60, 240),
+(3, 1, 'IT_PROJECTOR',  'Projectors & Display',         'projector,display,hdmi,screen',  'High',     30, 180),
+(4, 2, 'FAC_AIRCON',    'Air Conditioning & Cooling',   'air conditioner,ac,hot,leaking', 'Medium',   60, 360),
+(5, 2, 'FAC_SOUND',     'Microphones & Audio',          'mic,microphone,speaker,sound',   'Critical', 15, 60);
 
 -- ---- 3.4. classrooms ---------------------------------------------------------
 INSERT INTO `classrooms` 
@@ -253,15 +260,15 @@ VALUES
 (4, 'B2-405', 'Building B2', 4, 1),
 (5, 'C1-102', 'Building C1', 1, 0);
 
--- ---- 3.5. assets -------------------------------------------------------------
+-- ---- 3.5. assets (Now linked with category_id) -------------------------------
 INSERT INTO `assets` 
-    (`asset_id`, `asset_code`, `asset_name`, `classroom_id`, `status`, `fault_count`) 
+    (`asset_id`, `asset_code`, `asset_name`, `classroom_id`, `category_id`, `status`, `fault_count`) 
 VALUES
-(1, 'AST-PRJ-001', 'Epson EB-X06 Projector', 1, 'Active', 0),
-(2, 'AST-AC-001', 'Daikin Inverter AC 18000BTU', 1, 'Active', 1),
-(3, 'AST-MIC-001', 'Shure SVX24 Wireless Microphone', 1, 'Faulty', 3), 
-(4, 'AST-PRJ-002', 'Panasonic PT-LB386 Projector', 2, 'Active', 0),
-(5, 'AST-SW-001', 'Cisco 24-Port Gigabit Switch', 3, 'Active', 0),
-(6, 'AST-PC-001', 'HP ProDesk Lab Computers (x30)', 3, 'Under_Repair', 2);
+(1, 'AST-PRJ-001', 'Epson EB-X06 Projector',         1, 3, 'Active', 0),
+(2, 'AST-AC-001',  'Daikin Inverter AC 18000BTU',     1, 4, 'Active', 1),
+(3, 'AST-MIC-001', 'Shure SVX24 Wireless Microphone', 1, 5, 'Faulty', 3), 
+(4, 'AST-PRJ-002', 'Panasonic PT-LB386 Projector',   2, 3, 'Active', 0),
+(5, 'AST-SW-001',  'Cisco 24-Port Gigabit Switch',    3, 1, 'Active', 0),
+(6, 'AST-PC-001',  'HP ProDesk Lab Computers (x30)',  3, 2, 'Under_Repair', 2);
 
 SET FOREIGN_KEY_CHECKS = 1;
