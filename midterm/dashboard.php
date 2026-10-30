@@ -44,9 +44,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
     if ($room) {
         $is_edit = true;
         $room_number = $room['room_number'];
-        $building = $room['building'];
-        $floor = $room['floor'];
-        $is_active = $room['is_active'];
+        $building    = $room['building'];
+        $floor       = $room['floor'];
+        $is_active   = $room['is_active'];
     } else {
         header("Location: dashboard.php?msg=not_found");
         exit;
@@ -130,6 +130,7 @@ $total_rooms    = (int)$pdo->query("SELECT COUNT(*) FROM classrooms")->fetchColu
 $active_rooms   = (int)$pdo->query("SELECT COUNT(*) FROM classrooms WHERE is_active = 1")->fetchColumn();
 $inactive_rooms = $total_rooms - $active_rooms;
 
+// Sort newest records first for immediate visual feedback during viva demonstration
 $stmt = $pdo->query("SELECT * FROM classrooms ORDER BY classroom_id DESC");
 $classrooms = $stmt->fetchAll();
 ?>
@@ -185,6 +186,13 @@ $classrooms = $stmt->fetchAll();
         th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #eee; }
         th { background: #f8fafc; color: #475569; font-weight: bold; }
         tr:hover { background: #f8fafc; }
+
+        /* Highlight selected row during editing */
+        .row-editing {
+    background-color: #e0f2fe !important; /* Nền xanh dương phấn dịu mắt */
+    border-left: 4px solid #0284c7;        /* Viền xanh nhấn ở mép trái */
+}
+
         .badge { display: inline-block; padding: 3px 8px; border-radius: 10px; font-size: 11px; font-weight: bold; }
         .badge-active { background: #dcfce7; color: #166534; }
         .badge-inactive { background: #fee2e2; color: #991b1b; }
@@ -245,7 +253,7 @@ $classrooms = $stmt->fetchAll();
     <?php endif; ?>
 
     <div class="grid">
-        <!-- Form Component -->
+        <!-- Form Component (Create & Edit) -->
         <div class="card">
             <h2><?= $is_edit ? 'Edit Classroom #' . $edit_id : 'Add New Classroom' ?></h2>
             <form action="dashboard.php" method="POST">
@@ -310,7 +318,7 @@ $classrooms = $stmt->fetchAll();
                         <tr><td colspan="6" style="text-align: center; color: #888;">No classrooms available.</td></tr>
                     <?php else: ?>
                         <?php foreach ($classrooms as $row): ?>
-                            <tr>
+                            <tr class="<?= ($is_edit && $edit_id === (int)$row['classroom_id']) ? 'row-editing' : '' ?>">
                                 <td><?= htmlspecialchars($row['classroom_id']) ?></td>
                                 <td><strong><?= htmlspecialchars($row['room_number']) ?></strong></td>
                                 <td><?= htmlspecialchars($row['building']) ?></td>
