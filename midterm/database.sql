@@ -8,9 +8,9 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
-CREATE DATABASE IF NOT EXISTS `campus_helpdesk`
+CREATE DATABASE IF NOT EXISTS `campus_helpdesk_midterm`
     DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `campus_helpdesk`;
+USE `campus_helpdesk_midterm`;
 
 -- Drop existing tables in reverse order of foreign key dependencies for clean re-runs
 DROP TABLE IF EXISTS `satisfaction_surveys`, `escalation_logs`, `ticket_status_logs`, 
