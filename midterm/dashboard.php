@@ -1,10 +1,10 @@
 <?php
-// dashboard.php - Classrooms Management (Premium SaaS CRUD Architecture)
+// dashboard.php - Quản lý phòng học (Phân hệ Vertical Slice chuẩn kiến trúc SaaS)
 require_once 'db.php';
 
-$errors = [];
-$is_edit = false;
-$edit_id = 0;
+$errors = [];     // Mảng chứa các thông báo lỗi kiểm tra dữ liệu
+$is_edit = false; // Cờ xác định trạng thái form: Thêm mới (false) hoặc Sửa (true)
+$edit_id = 0;     // ID của phòng học đang được chọn để chỉnh sửa
 
 $room_number = '';
 $building = '';
@@ -12,17 +12,21 @@ $floor = '';
 $is_active = 1;
 
 // -----------------------------------------------------------------------------
-// 1. HANDLE RECORD DELETION (DELETE)
+// 1. XỬ LÝ XÓA BẢN GHI (DELETE)
 // -----------------------------------------------------------------------------
 if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])) {
-    $delete_id = (int)$_GET['id'];
+    $delete_id = (int)$_GET['id']; // Lấy ID từ URL và ép kiểu số nguyên an toàn
     try {
+        // Chuẩn bị và thực thi câu lệnh SQL xóa bằng Prepared Statement
         $stmt = $pdo->prepare("DELETE FROM classrooms WHERE classroom_id = :id");
         $stmt->execute(['id' => $delete_id]);
+        
+        // Xóa thành công, chuyển hướng về trang dashboard kèm cờ thông báo
         header("Location: dashboard.php?msg=deleted");
         exit;
     } catch (PDOException $e) {
-        // SQLSTATE 23000: Foreign Key Integrity Constraint (ON DELETE RESTRICT)
+        // Bắt mã lỗi SQLSTATE 23000: Vi phạm toàn vẹn khóa ngoại (ON DELETE RESTRICT)
+        // Lỗi này xảy ra khi phòng học vẫn còn thiết bị (assets) đang gắn vào
         if ($e->getCode() == '23000') {
             header("Location: dashboard.php?msg=fk_error");
         } else {
@@ -33,7 +37,7 @@ if (isset($_GET['action']) && $_GET['action'] === 'delete' && isset($_GET['id'])
 }
 
 // -----------------------------------------------------------------------------
-// 2. FETCH RECORD DATA FOR EDITING (PRE-FILLED UPDATE FORM)
+// 2. LẤY DỮ LIỆU BẢN GHI ĐỂ ĐIỀN VÀO FORM SỬA (UPDATE)
 // -----------------------------------------------------------------------------
 if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) {
     $edit_id = (int)$_GET['id'];
@@ -42,11 +46,11 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
     $room = $stmt->fetch();
 
     if ($room) {
-        $is_edit = true;
+        $is_edit = true; // Kích hoạt cờ sửa để tự động mở Modal ở chế độ Update
         $room_number = $room['room_number'];
         $building    = $room['building'];
         $floor       = $room['floor'];
-        $is_active   = $room['is_active'];
+        $is_active   = (int)$room['is_active'];
     } else {
         header("Location: dashboard.php?msg=not_found");
         exit;
@@ -54,46 +58,67 @@ if (isset($_GET['action']) && $_GET['action'] === 'edit' && isset($_GET['id'])) 
 }
 
 // -----------------------------------------------------------------------------
-// 3. HANDLE FORM SUBMISSION (CREATE & UPDATE WITH SERVER VALIDATION)
+// 3. XỬ LÝ GỬI FORM (THÊM MỚI VÀ CẬP NHẬT VỚI VALIDATION PHÍA MÁY CHỦ)
 // -----------------------------------------------------------------------------
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $edit_id = isset($_POST['edit_id']) ? (int)$_POST['edit_id'] : 0;
     $is_edit = ($edit_id > 0);
 
-    $room_number = trim($_POST['room_number'] ?? '');
+    // Chuẩn hóa dữ liệu đầu vào: Cắt khoảng trắng thừa và viết hoa mã phòng
+    $room_number = strtoupper(trim($_POST['room_number'] ?? ''));
     $building    = trim($_POST['building'] ?? '');
     $floor       = trim($_POST['floor'] ?? '');
     $is_active   = isset($_POST['is_active']) ? (int)$_POST['is_active'] : 1;
 
-    // Server-side validation rules
+    // --- RÀNG BUỘC 1: Mã phòng (Bắt buộc, độ dài, và khớp Regex chuẩn [Tòa]-[SốPhòng]) ---
     if ($room_number === '') {
-        $errors[] = "Room number is required.";
-    }
-    if ($building === '') {
-        $errors[] = "Building name is required.";
-    }
-    if ($floor === '' || !is_numeric($floor) || (int)$floor < 1) {
-        $errors[] = "Floor must be a positive integer (>= 1).";
+        $errors[] = "Vui lòng nhập mã phòng học.";
+    } elseif (strlen($room_number) > 50) {
+        $errors[] = "Mã phòng không được vượt quá 50 ký tự.";
+    } elseif (!preg_match('/^[A-Z0-9]{2,8}-[0-9]{3,4}$/', $room_number)) {
+        $errors[] = "Định dạng mã phòng không hợp lệ. Phải tuân theo chuẩn: [MãTòa]-[SốPhòng] (Ví dụ: A1-201, B2-105, D1-501).";
     }
 
-    // Business code uniqueness check
+    // --- RÀNG BUỘC 2: Tên tòa nhà (Bắt buộc, độ dài từ 2 đến 50 ký tự) ---
+    if ($building === '') {
+        $errors[] = "Vui lòng nhập tên tòa nhà.";
+    } elseif (strlen($building) < 2 || strlen($building) > 50) {
+        $errors[] = "Tên tòa nhà phải có độ dài từ 2 đến 50 ký tự.";
+    }
+
+    // --- RÀNG BUỘC 3: Số tầng (Bắt buộc là số nguyên dương từ tầng 1 đến 50) ---
+    if ($floor === '') {
+        $errors[] = "Vui lòng nhập số tầng.";
+    } elseif (filter_var($floor, FILTER_VALIDATE_INT) === false || (int)$floor < 1 || (int)$floor > 50) {
+        $errors[] = "Số tầng phải là số nguyên dương hợp lệ trong khoảng từ 1 đến 50.";
+    }
+
+    // --- RÀNG BUỘC 4: Trạng thái hoạt động (Chỉ cho phép nhận 0 hoặc 1) ---
+    if (!in_array($is_active, [0, 1], true)) {
+        $errors[] = "Trạng thái hoạt động được chọn không hợp lệ.";
+    }
+
+    // --- RÀNG BUỘC 5: Kiểm tra trùng mã nghiệp vụ (Unique Business Code) ---
     if (empty($errors)) {
         if ($is_edit) {
+            // Khi sửa: Kiểm tra xem mã phòng có bị trùng với phòng KHÁC không
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM classrooms WHERE room_number = :room_number AND classroom_id != :id");
             $stmt->execute(['room_number' => $room_number, 'id' => $edit_id]);
         } else {
+            // Khi tạo mới: Kiểm tra xem mã phòng đã tồn tại trong CSDL chưa
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM classrooms WHERE room_number = :room_number");
             $stmt->execute(['room_number' => $room_number]);
         }
 
         if ($stmt->fetchColumn() > 0) {
-            $errors[] = "Room number '{$room_number}' already exists. Please choose a unique room number.";
+            $errors[] = "Mã phòng '{$room_number}' đã tồn tại trong hệ thống. Vui lòng chọn mã khác.";
         }
     }
 
-    // Process database insertion or update if no validation errors
+    // --- TIẾN HÀNH LƯU VÀO CSDL KHI TẤT CẢ DỮ LIỆU ĐỀU HỢP LỆ ---
     if (empty($errors)) {
         if ($is_edit) {
+            // Cập nhật bản ghi đang có
             $sql = "UPDATE classrooms 
                     SET room_number = :room_number, building = :building, floor = :floor, is_active = :is_active 
                     WHERE classroom_id = :id";
@@ -108,6 +133,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             header("Location: dashboard.php?msg=updated");
             exit;
         } else {
+            // Thêm mới một bản ghi phòng học
             $sql = "INSERT INTO classrooms (room_number, building, floor, is_active) 
                     VALUES (:room_number, :building, :floor, :is_active)";
             $stmt = $pdo->prepare($sql);
@@ -124,27 +150,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // -----------------------------------------------------------------------------
-// 4. FETCH DATA FOR LISTING & SUMMARY KPI CARDS (+5 BONUS POINTS)
+// 4. LẤY DỮ LIỆU THỐNG KÊ CHO THẺ KPI (+5 ĐIỂM THƯỞNG) VÀ BẢNG DANH SÁCH
 // -----------------------------------------------------------------------------
 $total_rooms    = (int)$pdo->query("SELECT COUNT(*) FROM classrooms")->fetchColumn();
 $active_rooms   = (int)$pdo->query("SELECT COUNT(*) FROM classrooms WHERE is_active = 1")->fetchColumn();
 $inactive_rooms = $total_rooms - $active_rooms;
 $active_ratio   = ($total_rooms > 0) ? round(($active_rooms / $total_rooms) * 100, 1) : 0;
 
-// Fetch unique buildings dynamically for filter dropdown
+// Lấy danh sách các tòa nhà không trùng lặp để đưa vào dropdown lọc
 $building_stmt = $pdo->query("SELECT DISTINCT building FROM classrooms ORDER BY building ASC");
 $unique_buildings = $building_stmt->fetchAll(PDO::FETCH_COLUMN);
 
-// Sort newest records first for immediate visual feedback during viva demonstration
+// Sắp xếp ID giảm dần (mới nhất lên đầu) để demo viva thấy ngay kết quả tức thì
 $stmt = $pdo->query("SELECT * FROM classrooms ORDER BY classroom_id DESC");
 $classrooms = $stmt->fetchAll();
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="vi">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Classroom Management &bull; Campus Helpdesk</title>
+    <title>Quản lý phòng học &bull; Campus Helpdesk</title>
     <style>
         :root {
             --bg-page: #f8fafc;
@@ -192,7 +218,7 @@ $classrooms = $stmt->fetchAll();
 
         .container { max-width: 1220px; margin: 0 auto; }
 
-        /* 1. Header with Breadcrumb & Icon */
+        /* 1. Header có Breadcrumb và Biểu tượng lớn */
         .header-panel {
             display: flex;
             align-items: center;
@@ -251,7 +277,7 @@ $classrooms = $stmt->fetchAll();
             box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
         }
 
-        /* 2. Elevated KPI Cards */
+        /* 2. Thẻ KPI có viền màu nhận diện */
         .kpi-row {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -330,7 +356,7 @@ $classrooms = $stmt->fetchAll();
             color: var(--text-muted);
         }
 
-        /* 3. Floating Toast Notifications */
+        /* 3. Hộp thông báo nổi góc trên bên phải (Toast Notification) */
         .toast-container {
             position: fixed;
             top: 24px;
@@ -374,7 +400,7 @@ $classrooms = $stmt->fetchAll();
             to { opacity: 1; transform: translateX(0); }
         }
 
-        /* 4. Full-Width Data Table Panel */
+        /* 4. Khung bảng dữ liệu Full-width */
         .table-panel {
             background: var(--surface);
             border: 1px solid var(--border-color);
@@ -462,7 +488,7 @@ $classrooms = $stmt->fetchAll();
             transform: translateY(-1px);
         }
 
-        /* 5. Refined Table with Soft Hover #F8FAFF */
+        /* 5. Giao diện bảng và hiệu ứng hover dòng */
         .table-responsive { overflow-x: auto; }
         table { width: 100%; border-collapse: collapse; text-align: left; }
         th {
@@ -485,7 +511,7 @@ $classrooms = $stmt->fetchAll();
         }
         tbody tr:hover td { background-color: #f8faff; }
 
-        /* Row Highlight for Editing */
+        /* Highlight dòng đang được chỉnh sửa */
         .row-editing td {
             background-color: var(--indigo-50) !important;
             border-bottom-color: var(--indigo-100);
@@ -551,7 +577,7 @@ $classrooms = $stmt->fetchAll();
             background: var(--rose-500);
         }
 
-        /* Action Buttons with Tooltips */
+        /* Nút hành động thao tác dòng */
         .actions-cell { text-align: right; white-space: nowrap; }
         .btn-act {
             padding: 6px 11px;
@@ -571,7 +597,7 @@ $classrooms = $stmt->fetchAll();
         .btn-act-delete { color: var(--rose-500); background: var(--rose-50); margin-left: 6px; }
         .btn-act-delete:hover { background: var(--rose-200); }
 
-        /* Pagination & Footer */
+        /* Phân trang và chân bảng */
         .table-footer {
             padding: 14px 24px;
             border-top: 1px solid var(--border-color);
@@ -610,7 +636,7 @@ $classrooms = $stmt->fetchAll();
             cursor: not-allowed;
         }
 
-        /* Modal Dialog Component */
+        /* Modal Dialog */
         .modal-backdrop {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -668,6 +694,11 @@ $classrooms = $stmt->fetchAll();
             outline: none; border-color: var(--indigo-600);
             box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
         }
+        .input-hint {
+            font-size: 11.5px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
 
         .modal-card-footer {
             display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;
@@ -688,32 +719,32 @@ $classrooms = $stmt->fetchAll();
 </head>
 <body>
 
-<!-- Floating Toast Container -->
+<!-- Khung chứa thông báo Toast nổi -->
 <div class="toast-container" id="toastContainer">
     <?php if (isset($_GET['msg'])): ?>
         <?php if ($_GET['msg'] === 'created'): ?>
             <div class="toast success" id="mainToast">
-                <span>Classroom record created successfully.</span>
+                <span>Thêm mới phòng học thành công.</span>
                 <button class="toast-close" onclick="dismissToast(this)">&times;</button>
             </div>
         <?php elseif ($_GET['msg'] === 'updated'): ?>
             <div class="toast success" id="mainToast">
-                <span>Classroom configuration updated successfully.</span>
+                <span>Cập nhật thông tin phòng học thành công.</span>
                 <button class="toast-close" onclick="dismissToast(this)">&times;</button>
             </div>
         <?php elseif ($_GET['msg'] === 'deleted'): ?>
             <div class="toast success" id="mainToast">
-                <span>Classroom record deleted successfully.</span>
+                <span>Đã xóa bản ghi phòng học thành công.</span>
                 <button class="toast-close" onclick="dismissToast(this)">&times;</button>
             </div>
         <?php elseif ($_GET['msg'] === 'fk_error'): ?>
             <div class="toast error" id="mainToast">
-                <span><strong>Constraint Error:</strong> Cannot delete room with active assets (<code>ON DELETE RESTRICT</code>).</span>
+                <span><strong>Lỗi toàn vẹn dữ liệu:</strong> Không thể xóa phòng học này vì đang có thiết bị liên kết (<code>ON DELETE RESTRICT</code>).</span>
                 <button class="toast-close" onclick="dismissToast(this)">&times;</button>
             </div>
         <?php elseif ($_GET['msg'] === 'not_found'): ?>
             <div class="toast error" id="mainToast">
-                <span>Requested classroom record was not found.</span>
+                <span>Không tìm thấy bản ghi phòng học yêu cầu.</span>
                 <button class="toast-close" onclick="dismissToast(this)">&times;</button>
             </div>
         <?php endif; ?>
@@ -721,7 +752,7 @@ $classrooms = $stmt->fetchAll();
 </div>
 
 <div class="container">
-    <!-- 1. Header with Breadcrumb & Icon -->
+    <!-- 1. Header có Breadcrumb và Trạng thái CSDL -->
     <header class="header-panel">
         <div class="header-left">
             <div class="header-icon-box">
@@ -735,22 +766,22 @@ $classrooms = $stmt->fetchAll();
                 </svg>
             </div>
             <div class="header-title-box">
-                <div class="breadcrumb-tag">Management / Classrooms</div>
-                <h1>Classroom Management</h1>
-                <p>Manage classroom information and operational status.</p>
+                <div class="breadcrumb-tag">Hệ thống quản lý / Phòng học</div>
+                <h1>Quản lý phòng học</h1>
+                <p>Theo dõi danh mục cơ sở vật chất và trạng thái vận hành của phòng học.</p>
             </div>
         </div>
         <div class="db-status-pill">
             <div class="pulse-dot"></div>
-            <span>Database Connected</span>
+            <span>Đã kết nối CSDL (PDO)</span>
         </div>
     </header>
 
-    <!-- 2. Refined 3 KPI Cards -->
+    <!-- 2. Thẻ chỉ số KPI -->
     <div class="kpi-row">
         <div class="kpi-card kpi-total">
             <div class="kpi-card-header">
-                <span class="kpi-label">Total Classrooms</span>
+                <span class="kpi-label">Tổng số phòng học</span>
                 <div class="kpi-icon-pastel">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="4" y="2" width="16" height="20" rx="2"></rect>
@@ -762,12 +793,12 @@ $classrooms = $stmt->fetchAll();
                 </div>
             </div>
             <div class="kpi-numeric"><?= $total_rooms ?></div>
-            <div class="kpi-footer-text">Physical facilities indexed</div>
+            <div class="kpi-footer-text">Phòng học đã lập chỉ mục trong hệ thống</div>
         </div>
 
-        <div class="kpi-card kpi-active">
+        <div class="kpi-card active">
             <div class="kpi-card-header">
-                <span class="kpi-label">Operational Active</span>
+                <span class="kpi-label">Đang hoạt động</span>
                 <div class="kpi-icon-pastel">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
@@ -779,12 +810,12 @@ $classrooms = $stmt->fetchAll();
             <div class="progress-slot">
                 <div class="progress-active-bar" style="width: <?= $active_ratio ?>%;"></div>
             </div>
-            <div class="kpi-footer-text"><?= $active_rooms ?>/<?= $total_rooms ?> classrooms operational (<?= $active_ratio ?>%)</div>
+            <div class="kpi-footer-text"><?= $active_rooms ?>/<?= $total_rooms ?> phòng sẵn sàng phục vụ (<?= $active_ratio ?>%)</div>
         </div>
 
-        <div class="kpi-card kpi-inactive">
+        <div class="kpi-card inactive">
             <div class="kpi-card-header">
-                <span class="kpi-label">Maintenance / Inactive</span>
+                <span class="kpi-label">Bảo trì / Tạm dừng</span>
                 <div class="kpi-icon-pastel">
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"></circle>
@@ -794,36 +825,36 @@ $classrooms = $stmt->fetchAll();
                 </div>
             </div>
             <div class="kpi-numeric"><?= $inactive_rooms ?></div>
-            <div class="kpi-footer-text">Requires maintenance or decommissioned</div>
+            <div class="kpi-footer-text">Đang bảo dưỡng hoặc sửa chữa thiết bị</div>
         </div>
     </div>
 
-    <!-- 3. Full-Width Table Component -->
+    <!-- 3. Bảng dữ liệu chính kèm thanh công cụ lọc -->
     <div class="table-panel">
         <div class="table-toolbar">
             <div class="toolbar-filters">
                 <div class="search-field">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    <input type="text" id="liveSearchInput" placeholder="Search classrooms...">
+                    <input type="text" id="liveSearchInput" placeholder="Tìm kiếm mã phòng, tòa nhà, tầng...">
                 </div>
 
                 <select id="filterBuilding" class="filter-select">
-                    <option value="all">All Buildings</option>
+                    <option value="all">Tất cả tòa nhà</option>
                     <?php foreach ($unique_buildings as $bld): ?>
                         <option value="<?= htmlspecialchars($bld) ?>"><?= htmlspecialchars($bld) ?></option>
                     <?php endforeach; ?>
                 </select>
 
                 <select id="filterStatus" class="filter-select">
-                    <option value="all">All Statuses</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
+                    <option value="all">Tất cả trạng thái</option>
+                    <option value="active">Đang hoạt động</option>
+                    <option value="inactive">Tạm dừng</option>
                 </select>
             </div>
 
             <button type="button" class="btn-add-primary" id="openAddModalBtn">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                Add Classroom
+                Thêm phòng học
             </button>
         </div>
 
@@ -832,16 +863,16 @@ $classrooms = $stmt->fetchAll();
                 <thead>
                     <tr>
                         <th style="width: 60px;">ID</th>
-                        <th>Room Identifier</th>
-                        <th>Building</th>
-                        <th style="width: 120px;">Floor</th>
-                        <th style="width: 120px;">Status</th>
-                        <th style="width: 140px; text-align: right;">Actions</th>
+                        <th>Mã phòng học</th>
+                        <th>Tòa nhà</th>
+                        <th style="width: 120px;">Vị trí tầng</th>
+                        <th style="width: 130px;">Trạng thái</th>
+                        <th style="width: 140px; text-align: right;">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($classrooms)): ?>
-                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 36px;">No classroom records found.</td></tr>
+                        <tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 36px;">Không tìm thấy bản ghi phòng học nào.</td></tr>
                     <?php else: ?>
                         <?php foreach ($classrooms as $row): ?>
                             <tr class="data-row <?= ($is_edit && $edit_id === (int)$row['classroom_id']) ? 'row-editing' : '' ?>"
@@ -851,37 +882,37 @@ $classrooms = $stmt->fetchAll();
                                 <td>
                                     <span class="col-room"><?= htmlspecialchars($row['room_number']) ?></span>
                                     <?php if ($is_edit && $edit_id === (int)$row['classroom_id']): ?>
-                                        <span class="editing-flag">EDITING</span>
+                                        <span class="editing-flag">ĐANG SỬA</span>
                                     <?php endif; ?>
                                 </td>
                                 <td>
                                     <span class="bld-badge"><?= htmlspecialchars($row['building']) ?></span>
                                 </td>
                                 <td>
-                                    <span class="floor-label">Floor <?= htmlspecialchars($row['floor']) ?></span>
+                                    <span class="floor-label">Tầng <?= htmlspecialchars($row['floor']) ?></span>
                                 </td>
                                 <td>
                                     <?php if ($row['is_active'] == 1): ?>
-                                        <span class="status-pill active"><span class="dot"></span> Active</span>
+                                        <span class="status-pill active"><span class="dot"></span> Hoạt động</span>
                                     <?php else: ?>
-                                        <span class="status-pill inactive"><span class="dot"></span> Inactive</span>
+                                        <span class="status-pill inactive"><span class="dot"></span> Tạm dừng</span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="actions-cell">
                                     <a class="btn-act btn-act-edit" 
                                        href="dashboard.php?action=edit&id=<?= $row['classroom_id'] ?>" 
-                                       title="Edit classroom configuration">
+                                       title="Chỉnh sửa thông tin phòng">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-                                        Edit
+                                        Sửa
                                     </a>
                                     <button type="button" 
                                             class="btn-act btn-act-delete" 
                                             data-id="<?= $row['classroom_id'] ?>" 
                                             data-room="<?= htmlspecialchars($row['room_number']) ?>"
-                                            title="Delete classroom record"
+                                            title="Xóa phòng học"
                                             onclick="openDeleteDialog(this)">
                                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path></svg>
-                                        Delete
+                                        Xóa
                                     </button>
                                 </td>
                             </tr>
@@ -891,31 +922,32 @@ $classrooms = $stmt->fetchAll();
             </table>
         </div>
 
-        <!-- 4. Pagination & Record Count Footer -->
+        <!-- 4. Chân bảng điều khiển phân trang -->
         <div class="table-footer">
             <div>
-                Showing <strong id="pageRangeText">1–8</strong> of <strong id="visibleCount"><?= count($classrooms) ?></strong> records
+                Đang hiển thị <strong id="pageRangeText">1–8</strong> trên tổng số <strong id="visibleCount"><?= count($classrooms) ?></strong> phòng học
             </div>
             <div class="pagination-controls">
-                <button type="button" class="btn-page" id="prevPageBtn" disabled>Previous</button>
-                <span style="font-weight: 600; padding: 0 4px;" id="pageIndicator">Page 1 of 1</span>
-                <button type="button" class="btn-page" id="nextPageBtn">Next</button>
+                <button type="button" class="btn-page" id="prevPageBtn" disabled>Trang trước</button>
+                <span style="font-weight: 600; padding: 0 4px;" id="pageIndicator">Trang 1 / 1</span>
+                <button type="button" class="btn-page" id="nextPageBtn">Trang sau</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal 1: Form Dialog (Create & Edit) -->
+<!-- Modal 1: Form Thêm mới & Chỉnh sửa phòng học -->
 <div class="modal-backdrop <?= ($is_edit || !empty($errors)) ? 'show' : '' ?>" id="crudModal">
     <div class="modal-card">
         <div class="modal-card-header">
-            <h2><?= $is_edit ? 'Edit Classroom #' . $edit_id : 'Register New Classroom' ?></h2>
+            <h2><?= $is_edit ? 'Chỉnh sửa phòng học #' . $edit_id : 'Đăng ký phòng học mới' ?></h2>
             <button type="button" class="btn-close-modal" id="closeModalCross">&times;</button>
         </div>
         <div class="modal-card-body">
+            <!-- Hiển thị thông báo lỗi kiểm tra từ máy chủ (nếu có) -->
             <?php if (!empty($errors)): ?>
                 <div style="background: var(--rose-50); border: 1px solid var(--rose-200); color: var(--rose-700); padding: 12px; border-radius: var(--radius-sm); margin-bottom: 16px; font-size: 13px;">
-                    <strong>Please resolve input errors:</strong>
+                    <strong>Vui lòng khắc phục các lỗi sau:</strong>
                     <ul style="margin-left: 18px; margin-top: 4px;">
                         <?php foreach ($errors as $error): ?>
                             <li><?= htmlspecialchars($error) ?></li>
@@ -928,38 +960,44 @@ $classrooms = $stmt->fetchAll();
                 <input type="hidden" name="edit_id" value="<?= $is_edit ? $edit_id : 0 ?>">
 
                 <div class="form-item">
-                    <label for="room_number">Room Number (Unique Code):</label>
+                    <label for="room_number">Mã phòng học (Mã duy nhất):</label>
                     <input type="text" id="room_number" name="room_number" 
                            value="<?= htmlspecialchars($room_number) ?>" 
-                           placeholder="e.g., A1-201, B2-302" required>
+                           placeholder="Ví dụ: A1-201, B2-105, D1-501" 
+                           pattern="^[A-Za-z0-9]{2,8}-[0-9]{3,4}$"
+                           title="Định dạng chuẩn: [MãTòa]-[SốPhòng] (Ví dụ: A1-201, B2-105)"
+                           required>
+                    <div class="input-hint">Định dạng chuẩn: <code>[MãTòa]-[SốPhòng]</code> (Ví dụ: A1-201, B2-105)</div>
                 </div>
 
                 <div class="form-item">
-                    <label for="building">Building Allocation:</label>
+                    <label for="building">Tòa nhà:</label>
                     <input type="text" id="building" name="building" 
                            value="<?= htmlspecialchars($building) ?>" 
-                           placeholder="e.g., Building A1, Building B2" required>
+                           placeholder="Ví dụ: Building A1, Building B2" 
+                           minlength="2" maxlength="50" required>
                 </div>
 
                 <div class="form-item">
-                    <label for="floor">Floor Level:</label>
-                    <input type="number" id="floor" name="floor" min="1" 
+                    <label for="floor">Vị trí tầng:</label>
+                    <input type="number" id="floor" name="floor" min="1" max="50"
                            value="<?= htmlspecialchars($floor) ?>" 
-                           placeholder="e.g., 1, 2, 3" required>
+                           placeholder="Ví dụ: 1, 2, 3" required>
+                    <div class="input-hint">Số nguyên dương từ tầng 1 đến tầng 50</div>
                 </div>
 
                 <div class="form-item">
-                    <label for="is_active">Operational Status:</label>
+                    <label for="is_active">Trạng thái vận hành:</label>
                     <select id="is_active" name="is_active">
-                        <option value="1" <?= $is_active == 1 ? 'selected' : '' ?>>Active</option>
-                        <option value="0" <?= $is_active == 0 ? 'selected' : '' ?>>Inactive</option>
+                        <option value="1" <?= $is_active === 1 ? 'selected' : '' ?>>Đang hoạt động</option>
+                        <option value="0" <?= $is_active === 0 ? 'selected' : '' ?>>Bảo trì / Tạm dừng</option>
                     </select>
                 </div>
 
                 <div class="modal-card-footer">
-                    <a href="dashboard.php" class="btn-modal-cancel" id="cancelModalBtn">Cancel</a>
+                    <a href="dashboard.php" class="btn-modal-cancel" id="cancelModalBtn">Hủy bỏ</a>
                     <button type="submit" class="btn-modal-submit">
-                        <?= $is_edit ? 'Update Classroom' : 'Save Classroom' ?>
+                        <?= $is_edit ? 'Cập nhật phòng' : 'Lưu phòng học' ?>
                     </button>
                 </div>
             </form>
@@ -967,7 +1005,7 @@ $classrooms = $stmt->fetchAll();
     </div>
 </div>
 
-<!-- Modal 2: Custom Delete Confirmation Dialog -->
+<!-- Modal 2: Hộp thoại xác nhận trước khi xóa (Delete Confirmation Dialog) -->
 <div class="modal-backdrop" id="deleteModal">
     <div class="modal-card" style="max-width: 430px;">
         <div class="modal-card-header" style="border-bottom: none; padding-bottom: 0;">
@@ -980,19 +1018,19 @@ $classrooms = $stmt->fetchAll();
                     </svg>
                 </div>
                 <div>
-                    <h2 style="font-size: 16px; font-weight: 800; color: var(--text-heading);">Delete Classroom?</h2>
-                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 1px;">This action requires confirmation.</p>
+                    <h2 style="font-size: 16px; font-weight: 800; color: var(--text-heading);">Xác nhận xóa phòng?</h2>
+                    <p style="font-size: 12px; color: var(--text-muted); margin-top: 1px;">Thao tác này cần sự xác nhận của bạn.</p>
                 </div>
             </div>
         </div>
         <div class="modal-card-body" style="padding-top: 14px;">
             <p style="font-size: 13.5px; color: var(--text-body); line-height: 1.5;">
-                Are you sure you want to delete classroom <strong id="deleteTargetRoom" style="color: var(--text-heading);"></strong>? This action cannot be undone.
+                Bạn có chắc chắn muốn xóa phòng học <strong id="deleteTargetRoom" style="color: var(--text-heading);"></strong>? Thao tác này sẽ không thể khôi phục lại.
             </p>
             <div class="modal-card-footer" style="margin-top: 22px;">
-                <button type="button" class="btn-modal-cancel" id="cancelDeleteBtn">Cancel</button>
+                <button type="button" class="btn-modal-cancel" id="cancelDeleteBtn">Hủy</button>
                 <a href="#" id="confirmDeleteLink" class="btn-modal-submit" style="background: var(--rose-500); text-decoration: none; display: inline-flex; align-items: center; justify-content: center;">
-                    Delete
+                    Xác nhận xóa
                 </a>
             </div>
         </div>
@@ -1000,7 +1038,7 @@ $classrooms = $stmt->fetchAll();
 </div>
 
 <script>
-    // 1. Toast Auto-Dismiss
+    // 1. Tự động đóng thông báo Toast sau 4.5 giây
     function dismissToast(btn) {
         const toast = btn.closest('.toast');
         if (toast) {
@@ -1018,7 +1056,7 @@ $classrooms = $stmt->fetchAll();
         }, 4500);
     }
 
-    // 2. CRUD Modal Controller
+    // 2. Điều khiển Modal Thêm mới và Chỉnh sửa
     const crudModal = document.getElementById('crudModal');
     const openAddBtn = document.getElementById('openAddModalBtn');
     const closeCross = document.getElementById('closeModalCross');
@@ -1028,7 +1066,7 @@ $classrooms = $stmt->fetchAll();
         openAddBtn.addEventListener('click', () => {
             document.querySelector('#crudModal form').reset();
             document.querySelector('#crudModal input[name="edit_id"]').value = '0';
-            document.querySelector('.modal-card-header h2').textContent = 'Register New Classroom';
+            document.querySelector('.modal-card-header h2').textContent = 'Đăng ký phòng học mới';
             crudModal.classList.add('show');
         });
     }
@@ -1051,7 +1089,7 @@ $classrooms = $stmt->fetchAll();
         });
     }
 
-    // 3. Delete Confirmation Dialog Controller
+    // 3. Điều khiển Hộp thoại xác nhận xóa riêng biệt
     const deleteModal = document.getElementById('deleteModal');
     const deleteTargetRoom = document.getElementById('deleteTargetRoom');
     const confirmDeleteLink = document.getElementById('confirmDeleteLink');
@@ -1061,6 +1099,7 @@ $classrooms = $stmt->fetchAll();
         const id = btn.getAttribute('data-id');
         const room = btn.getAttribute('data-room');
         deleteTargetRoom.textContent = room;
+        // Gắn ID vào đường dẫn xóa gửi về backend
         confirmDeleteLink.href = 'dashboard.php?action=delete&id=' + id;
         deleteModal.classList.add('show');
     }
@@ -1071,7 +1110,7 @@ $classrooms = $stmt->fetchAll();
 
     if (cancelDeleteBtn) cancelDeleteBtn.addEventListener('click', closeDeleteDialog);
 
-    // Global Modal Backdrop & Escape Handling
+    // Xử lý sự kiện đóng Modal khi click ra ngoài nền tối hoặc bấm phím Escape
     window.addEventListener('click', (e) => {
         if (e.target === crudModal) closeCrudModal();
         if (e.target === deleteModal) closeDeleteDialog();
@@ -1084,7 +1123,7 @@ $classrooms = $stmt->fetchAll();
         }
     });
 
-    // 4. Client-side Realtime Filter & Pagination System
+    // 4. Hệ thống Lọc trực tiếp và Phân trang phía máy khách (Client-side)
     const searchInput = document.getElementById('liveSearchInput');
     const filterBuilding = document.getElementById('filterBuilding');
     const filterStatus = document.getElementById('filterStatus');
@@ -1096,7 +1135,7 @@ $classrooms = $stmt->fetchAll();
     const prevPageBtn = document.getElementById('prevPageBtn');
     const nextPageBtn = document.getElementById('nextPageBtn');
 
-    const ITEMS_PER_PAGE = 8;
+    const ITEMS_PER_PAGE = 8; // Mặc định hiển thị 8 phòng mỗi trang
     let currentPage = 1;
     let filteredRows = [...allRows];
 
@@ -1121,7 +1160,7 @@ $classrooms = $stmt->fetchAll();
             pageRangeText.textContent = total === 0 ? '0–0' : `${startIndex + 1}–${endIndex}`;
         }
         if (pageIndicator) {
-            pageIndicator.textContent = `Page ${currentPage} of ${totalPages}`;
+            pageIndicator.textContent = `Trang ${currentPage} / ${totalPages}`;
         }
 
         if (prevPageBtn) prevPageBtn.disabled = (currentPage === 1);
@@ -1145,7 +1184,7 @@ $classrooms = $stmt->fetchAll();
             return matchQuery && matchBuilding && matchStatus;
         });
 
-        currentPage = 1;
+        currentPage = 1; // Đưa về trang 1 mỗi khi thay đổi bộ lọc
         renderPagination();
     }
 
@@ -1172,7 +1211,7 @@ $classrooms = $stmt->fetchAll();
     if (filterBuilding) filterBuilding.addEventListener('change', applyFilterAndPaginate);
     if (filterStatus) filterStatus.addEventListener('change', applyFilterAndPaginate);
 
-    // Initial load
+    // Kích hoạt phân trang lần đầu khi tải trang
     applyFilterAndPaginate();
 </script>
 
