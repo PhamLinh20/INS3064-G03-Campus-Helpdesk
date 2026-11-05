@@ -1,0 +1,26 @@
+# ==============================================================================
+# TẬP TIN CẤU HÌNH MÁY CHỦ WEB APACHE (.htaccess)
+# Vai trò: 
+# - Kích hoạt cơ chế ghi đè đường dẫn (URL Rewriting).
+# - Điều hướng toàn bộ yêu cầu (request) từ trình duyệt về tập tin khởi động index.php
+#   để triển khai mô hình Front Controller / Router trong kiến trúc MVC.
+# ==============================================================================
+
+# Vô hiệu hóa tính năng MultiViews để tránh Apache tự động đoán định phần mở rộng file
+Options -MultiViews
+
+# Kích hoạt module RewriteEngine của máy chủ Apache
+RewriteEngine On
+
+# ĐIỀU KIỆN LOẠI TRỪ:
+# 1. Nếu đường dẫn yêu cầu trỏ trực tiếp đến một thư mục vật lý có thật thì bỏ qua quy tắc rewrite
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# 2. Nếu đường dẫn yêu cầu trỏ trực tiếp đến một tập tin vật lý có thật (như file .css, .js, .png) thì bỏ qua
+RewriteCond %{REQUEST_FILENAME} !-f
+
+# QUY TẮC ĐIỀU HƯỚNG:
+# Chuyển tiếp toàn bộ chuỗi URL còn lại vào tham số "url" của file index.php
+# Cờ [QSA]: Giữ nguyên chuỗi truy vấn GET đính kèm (Query String Append)
+# Cờ [L]: Dừng kiểm tra các quy tắc tiếp theo nếu quy tắc này đã khớp (Last rule)
+RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]
