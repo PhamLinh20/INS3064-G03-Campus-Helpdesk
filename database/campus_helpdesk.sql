@@ -1,5 +1,6 @@
 -- ============================================================================
 -- CAMPUS HELPDESK – IT & FACILITY TICKET SYSTEM
+-- Final Complete Database Script (All 12 Tables - Optimized English Edition)
 -- Environment: MariaDB 10.4+ / MySQL 8.0.16+ (InnoDB, utf8mb4)
 -- Demo Password for all seeded users: Helpdesk@123
 -- ============================================================================
@@ -221,7 +222,7 @@ ALTER TABLE `notifications` ADD INDEX `idx_notifications_user_unread` (`user_id`
 
 
 -- ============================================================================
--- 3. SEED DATA (MASTER DATA)
+-- 3. SEED DATA (MASTER DATA & ALL-ENGLISH TRANSACTIONAL RECORDS)
 -- ============================================================================
 
 -- ---- 3.1. departments --------------------------------------------------------
