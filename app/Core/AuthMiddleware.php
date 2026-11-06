@@ -39,7 +39,7 @@ class AuthMiddleware {
         if (isset($_SESSION['user_id'], $_SESSION['role'])) {
             switch ($_SESSION['role']) {
                 case 'Manager':
-                    header('Location: ' . BASE_URL . '/manager/tickets');
+                    header('Location: ' . BASE_URL . '/manager/dashboard');
                     exit;
                 case 'Technician':
                     header('Location: ' . BASE_URL . '/technician/dashboard');
