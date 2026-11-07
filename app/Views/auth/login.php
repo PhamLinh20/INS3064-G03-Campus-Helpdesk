@@ -1,3 +1,18 @@
+<?php
+/**
+ * View: Login - Campus Helpdesk
+ * Tương thích cả khi chạy qua MVC router (Apache/XAMPP) hoặc mở trực tiếp qua VS Code PHP Server (port 3000)
+ */
+if (!defined('BASE_URL')) {
+    $configFile = dirname(__DIR__, 3) . '/config/config.php';
+    if (file_exists($configFile)) {
+        require_once $configFile;
+    } else {
+        define('BASE_URL', '');
+    }
+}
+$loginAction = defined('BASE_URL') && !empty(BASE_URL) ? BASE_URL . '/auth/login' : 'login.php';
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -193,7 +208,7 @@
         <?php endif; ?>
 
         <!-- Form -->
-        <form action="<?= BASE_URL ?>/auth/login" method="POST" class="space-y-4">
+        <form action="<?= htmlspecialchars($loginAction) ?>" method="POST" class="space-y-4">
           <!-- Campus Email -->
           <div>
             <label class="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5" for="email">CAMPUS EMAIL</label>
