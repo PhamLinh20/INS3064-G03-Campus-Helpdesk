@@ -11,23 +11,27 @@ if (!defined('BASE_URL')) {
     }
 }
 
-// Lấy thông tin user từ Session
-$userName = $_SESSION['full_name'] ?? ($user_name ?? 'Student');
-$userCode = $_SESSION['user_code'] ?? ($user_code ?? '');
+// Lấy thông tin user từ Session, mặc định fallback là tài khoản mẫu trong Database (Student: Nguyen Minh Khoi)
+$userName = $_SESSION['full_name'] ?? ($user_name ?? 'Nguyen Minh Khoi');
+$userCode = $_SESSION['user_code'] ?? ($user_code ?? '23070001');
 $userRole = $_SESSION['role'] ?? ($role ?? 'Student');
 
-// Tạo ký tự viết tắt (Initials) cho Avatar
-$userInitials = '';
-$nameParts = explode(' ', trim($userName));
-foreach ($nameParts as $part) {
-    if (!empty($part)) {
-        $userInitials .= mb_strtoupper(mb_substr($part, 0, 1));
+// Tạo ký tự viết tắt (Initials) cho Avatar (ví dụ: Nguyen Minh Khoi -> NMK)
+$userInitials = 'NMK';
+if (!empty($userName)) {
+    $nameParts = preg_split('/\s+/', trim($userName));
+    if (count($nameParts) >= 3) {
+        $userInitials = mb_strtoupper(mb_substr($nameParts[0], 0, 1) . mb_substr($nameParts[1], 0, 1) . mb_substr(end($nameParts), 0, 1));
+    } else {
+        $userInitials = '';
+        foreach ($nameParts as $part) {
+            if (!empty($part)) {
+                $userInitials .= mb_strtoupper(mb_substr($part, 0, 1));
+            }
+        }
     }
 }
-if (mb_strlen($userInitials) > 3) {
-    $userInitials = mb_substr($userInitials, 0, 1) . mb_substr($userInitials, -2);
-}
-if (empty($userInitials)) $userInitials = 'U';
+if (empty($userInitials)) $userInitials = 'NMK';
 ?>
 <!DOCTYPE html>
 <html lang="en">

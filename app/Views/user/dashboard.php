@@ -34,10 +34,6 @@ require_once APPROOT . '/app/Views/layouts/user/sidebar.php';
             <h1 class="font-headline-h1 text-headline-h1 text-on-surface tracking-tight">
               Welcome back, <?= htmlspecialchars($userName) ?>
             </h1>
-            <span class="hidden md:inline-flex items-center gap-space-xs font-caption text-caption text-on-surface-variant bg-surface-container-high px-space-sm py-1 rounded-full">
-              <span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
-              Semester II &middot; 2025-2026 Academic Term
-            </span>
           </div>
           <p class="font-body-default text-body-default text-on-surface-variant max-w-2xl">
             Track your reported issues or dispatch an on-duty technician for classroom equipment.
@@ -53,7 +49,7 @@ require_once APPROOT . '/app/Views/layouts/user/sidebar.php';
               </div>
               <div class="flex items-center flex-wrap gap-2 min-w-0">
                 <p class="font-body-medium text-body-medium text-on-surface truncate">
-                  <span class="font-semibold">Ticket TIC-7490</span> has been marked <span class="px-2 py-0.5 rounded-full text-[12px] font-semibold bg-[#D1FAE5] text-[#059669]">Completed (Stage 4/5)</span> &middot; Rate Service &amp; Confirm Sign-off
+                  <span class="font-semibold">Ticket TIC-7490</span> has been marked <span class="px-2 py-0.5 rounded-full text-[12px] font-semibold bg-[#D1FAE5] text-[#059669]">Completed</span> &middot; Rate Service &amp; Confirm Sign-off
                 </p>
                 <span class="material-symbols-outlined text-[16px] text-[#059669]">arrow_forward</span>
               </div>
@@ -79,7 +75,7 @@ require_once APPROOT . '/app/Views/layouts/user/sidebar.php';
                 <span>Immediate On-Campus Response</span>
               </div>
               <h2 class="font-headline-h2 text-headline-h2 text-surface-container-lowest font-semibold leading-tight">Classroom equipment issue?</h2>
-              <p class="font-body-default text-body-default text-primary-fixed-dim leading-relaxed">Report technical faults or facility issues in under 60 seconds.</p>
+              <p class="font-body-default text-body-default text-primary-fixed-dim leading-relaxed">Report technical faults or facility issues for campus technical support.</p>
             </div>
             <div class="shrink-0 flex items-center">
               <a href="<?= BASE_URL ?>/user/tickets/create" class="group h-11 px-space-lg rounded-xl bg-secondary hover:bg-on-secondary-container text-on-secondary font-body-medium text-body-medium font-semibold flex items-center gap-space-sm shadow-md hover:shadow-lg transition-all cursor-pointer">
@@ -95,124 +91,94 @@ require_once APPROOT . '/app/Views/layouts/user/sidebar.php';
           <!-- Section Header -->
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-space-xs">
-              <h2 class="font-headline-h2 text-headline-h2 text-on-surface font-semibold">Recent Ticket</h2>
+              <h2 class="font-headline-h2 text-headline-h2 text-on-surface font-semibold">Recent Tickets</h2>
             </div>
             <a class="font-body-medium text-body-medium text-secondary hover:text-on-secondary-container flex items-center gap-space-xs transition-colors group" href="<?= BASE_URL ?>/user/tickets">
-              <span>View all tickets (6)</span>
+              <span>View all tickets (3)</span>
               <span class="material-symbols-outlined text-[18px] group-hover:translate-x-0.5 transition-transform">arrow_forward</span>
             </a>
           </div>
 
-          <!-- Tickets Card List -->
+          <!-- Tickets Card List (Aligned with Database Schema) -->
           <div class="flex flex-col gap-space-sm">
-            <!-- Ticket 1: TIC-7580 -->
-            <article class="p-space-sm rounded-xl bg-surface-container-lowest border border-[#E2E8F0] shadow-sm hover:border-secondary/40 transition-all flex flex-col gap-2">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
+            <!-- Ticket 1: TIC-7606 (Pending) -->
+            <article class="p-space-md rounded-xl bg-surface-container-lowest border border-[#E2E8F0] shadow-sm hover:border-secondary/40 transition-all flex flex-col gap-2.5">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div class="flex items-center gap-space-sm flex-wrap">
-                  <a href="<?= BASE_URL ?>/user/tickets/detail/1" class="font-semibold text-[#2563EB] hover:underline text-[14px]">TIC-7580</a>
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-label-default text-[11px] font-medium bg-[#EFF6FF] text-on-surface border border-[#E2E8F0]">
-                    <span class="material-symbols-outlined text-[13px] text-secondary">build</span>In Progress
+                  <a href="<?= BASE_URL ?>/user/tickets/detail/1" class="font-semibold text-secondary hover:underline text-[14px]">TIC-7606</a>
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-label-default text-[12px] font-medium bg-[#FEF3C7] text-[#B45309]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#B45309]"></span>Pending
+                  </span>
+                  <span class="px-2 py-0.5 rounded font-caption text-caption font-semibold bg-[#FEF3C7]/60 text-[#B45309]">Medium</span>
+                  <span class="font-medium text-on-surface text-[14px]">General Facility (Wall Socket)</span>
+                </div>
+                <div class="flex items-center gap-1 font-caption text-caption text-on-surface-variant font-medium shrink-0">
+                  <span class="material-symbols-outlined text-[15px] text-outline">schedule</span>
+                  <span>2026-10-14 08:00</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between gap-2 pt-2 border-t border-surface-variant/30 text-[12px]">
+                <div class="flex items-center gap-1 text-on-surface-variant truncate">
+                  <span class="material-symbols-outlined text-[15px] text-outline shrink-0">location_on</span>
+                  <span class="truncate">Room A1-202 &middot; Electrical Socket Issue</span>
+                </div>
+                <a href="<?= BASE_URL ?>/user/tickets/detail/1" class="inline-flex items-center gap-0.5 font-semibold text-secondary hover:underline shrink-0 text-[12px]">
+                  <span>View Details</span>
+                  <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
+                </a>
+              </div>
+            </article>
+
+            <!-- Ticket 2: TIC-7490 (Completed) -->
+            <article class="p-space-md rounded-xl bg-surface-container-lowest border border-[#E2E8F0] shadow-sm hover:border-secondary/40 transition-all flex flex-col gap-2.5">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div class="flex items-center gap-space-sm flex-wrap">
+                  <a href="<?= BASE_URL ?>/user/tickets/detail/5" class="font-semibold text-secondary hover:underline text-[14px]">TIC-7490</a>
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-label-default text-[12px] font-medium bg-[#D1FAE5] text-[#059669]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#059669]"></span>Completed
+                  </span>
+                  <span class="px-2 py-0.5 rounded font-caption text-caption font-semibold bg-[#FEF3C7]/60 text-[#B45309]">Medium</span>
+                  <span class="font-medium text-on-surface text-[14px]">HP ProDesk Lab Computers (x30)</span>
+                </div>
+                <div class="flex items-center gap-1 font-caption text-caption text-on-surface-variant font-medium shrink-0">
+                  <span class="material-symbols-outlined text-[15px] text-outline">schedule</span>
+                  <span>2026-10-12 10:00</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between gap-2 pt-2 border-t border-surface-variant/30 text-[12px]">
+                <div class="flex items-center gap-1 text-on-surface-variant truncate">
+                  <span class="material-symbols-outlined text-[15px] text-outline shrink-0">location_on</span>
+                  <span class="truncate">Computer Lab B2-301 &middot; IT Lab Hardware</span>
+                </div>
+                <a href="<?= BASE_URL ?>/user/tickets/detail/5" class="inline-flex items-center gap-0.5 font-semibold text-secondary hover:underline shrink-0 text-[12px]">
+                  <span>View Details</span>
+                  <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
+                </a>
+              </div>
+            </article>
+
+            <!-- Ticket 3: TIC-7450 (Closed) -->
+            <article class="p-space-md rounded-xl bg-surface-container-lowest border border-[#E2E8F0] shadow-sm hover:border-secondary/40 transition-all flex flex-col gap-2.5">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div class="flex items-center gap-space-sm flex-wrap">
+                  <a href="<?= BASE_URL ?>/user/tickets/detail/6" class="font-semibold text-secondary hover:underline text-[14px]">TIC-7450</a>
+                  <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full font-label-default text-[12px] font-medium bg-[#F1F5F9] text-[#475569]">
+                    <span class="w-1.5 h-1.5 rounded-full bg-[#475569]"></span>Closed
                   </span>
                   <span class="px-2 py-0.5 rounded font-caption text-caption font-semibold bg-[#FFEDD5] text-[#C2410C]">High</span>
-                  <span class="font-medium text-on-surface text-[14px]">Projector shows no signal from HDMI</span>
+                  <span class="font-medium text-on-surface text-[14px]">Cisco 24-Port Gigabit Switch</span>
                 </div>
                 <div class="flex items-center gap-1 font-caption text-caption text-on-surface-variant font-medium shrink-0">
                   <span class="material-symbols-outlined text-[15px] text-outline">schedule</span>
-                  <span>Today before 11:30 AM (1h 15m left)</span>
+                  <span>2026-10-10 13:00</span>
                 </div>
               </div>
-              <div class="flex items-center gap-3">
-                <div class="flex-1 flex items-center gap-0.5 h-1">
-                  <div class="flex-1 h-full rounded-full bg-[#2563EB]"></div>
-                  <div class="flex-1 h-full rounded-full bg-[#2563EB]"></div>
-                  <div class="flex-1 h-full rounded-full bg-[#2563EB]"></div>
-                  <div class="flex-1 h-full rounded-full bg-[#E2E8F0]"></div>
-                  <div class="flex-1 h-full rounded-full bg-[#E2E8F0]"></div>
-                </div>
-                <span class="text-[11px] text-on-surface-variant font-semibold shrink-0">Stage 3 of 5 &middot; In Progress</span>
-              </div>
-              <div class="flex items-center justify-between gap-2 pt-0.5 border-t border-surface-variant/30 text-[12px]">
+              <div class="flex items-center justify-between gap-2 pt-2 border-t border-surface-variant/30 text-[12px]">
                 <div class="flex items-center gap-1 text-on-surface-variant truncate">
                   <span class="material-symbols-outlined text-[15px] text-outline shrink-0">location_on</span>
-                  <span class="truncate">Room A1-201 &middot; Epson EB-X06 Projector &middot; Specialist: Hoang Van Hung (0901 000 004)</span>
+                  <span class="truncate">Computer Lab B2-301 &middot; Network Infrastructure</span>
                 </div>
-                <a href="<?= BASE_URL ?>/user/tickets/detail/1" class="inline-flex items-center gap-0.5 font-semibold text-[#2563EB] hover:underline shrink-0 text-[12px]">
-                  <span>View Details</span>
-                  <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
-                </a>
-              </div>
-            </article>
-
-            <!-- Ticket 2: TIC-7512 -->
-            <article class="p-space-sm rounded-xl bg-surface-container-lowest border border-[#E2E8F0] shadow-sm hover:border-secondary/40 transition-all flex flex-col gap-2">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                <div class="flex items-center gap-space-sm flex-wrap">
-                  <a href="<?= BASE_URL ?>/user/tickets/detail/2" class="font-semibold text-[#2563EB] hover:underline text-[14px]">TIC-7512</a>
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-label-default text-[11px] font-medium bg-[#EFF6FF] text-on-surface border border-[#E2E8F0]">
-                    <span class="material-symbols-outlined text-[13px] text-secondary">person</span>Assigned
-                  </span>
-                  <span class="px-2 py-0.5 rounded font-caption text-caption font-semibold bg-error-container text-on-error-container">Critical</span>
-                  <span class="font-medium text-on-surface text-[14px]">Shure SVX24 Wireless Microphone no audio</span>
-                </div>
-                <div class="flex items-center gap-1 font-caption text-caption text-on-surface-variant font-medium shrink-0">
-                  <span class="material-symbols-outlined text-[15px] text-outline">schedule</span>
-                  <span>Target: Today before 09:30 AM</span>
-                </div>
-              </div>
-              <div class="flex items-center gap-3">
-                <div class="flex-1 flex items-center gap-0.5 h-1">
-                  <div class="flex-1 h-full rounded-full bg-[#2563EB]"></div>
-                  <div class="flex-1 h-full rounded-full bg-[#2563EB]"></div>
-                  <div class="flex-1 h-full rounded-full bg-[#E2E8F0]"></div>
-                  <div class="flex-1 h-full rounded-full bg-[#E2E8F0]"></div>
-                  <div class="flex-1 h-full rounded-full bg-[#E2E8F0]"></div>
-                </div>
-                <span class="text-[11px] text-on-surface-variant font-semibold shrink-0">Stage 2 of 5 &middot; Assigned</span>
-              </div>
-              <div class="flex items-center justify-between gap-2 pt-0.5 border-t border-surface-variant/30 text-[12px]">
-                <div class="flex items-center gap-1 text-on-surface-variant truncate">
-                  <span class="material-symbols-outlined text-[15px] text-outline shrink-0">location_on</span>
-                  <span class="truncate">Room A1-201 &middot; Shure SVX24 Microphone &middot; Specialist: Facilities Dept</span>
-                </div>
-                <a href="<?= BASE_URL ?>/user/tickets/detail/2" class="inline-flex items-center gap-0.5 font-semibold text-[#2563EB] hover:underline shrink-0 text-[12px]">
-                  <span>View Details</span>
-                  <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
-                </a>
-              </div>
-            </article>
-
-            <!-- Ticket 3: TIC-7606 -->
-            <article class="p-space-sm rounded-xl bg-surface-container-lowest border border-[#E2E8F0] shadow-sm hover:border-secondary/40 transition-all flex flex-col gap-2">
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-                <div class="flex items-center gap-space-sm flex-wrap">
-                  <a href="<?= BASE_URL ?>/user/tickets/detail/3" class="font-semibold text-[#2563EB] hover:underline text-[14px]">TIC-7606</a>
-                  <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-label-default text-[11px] font-medium bg-[#EFF6FF] text-on-surface border border-[#E2E8F0]">
-                    <span class="material-symbols-outlined text-[13px] text-secondary">hourglass_empty</span>Pending
-                  </span>
-                  <span class="px-2 py-0.5 rounded font-caption text-caption font-semibold bg-[#FEF3C7] text-[#B45309]">Medium</span>
-                  <span class="font-medium text-on-surface text-[14px]">Loose wall power socket sparking</span>
-                </div>
-                <div class="flex items-center gap-1 font-caption text-caption text-error font-semibold shrink-0">
-                  <span class="material-symbols-outlined text-[15px] text-error">timer</span>
-                  <span>Est. response within 30 mins</span>
-                </div>
-              </div>
-              <div class="flex items-center gap-3">
-                <div class="flex-1 flex items-center gap-0.5 h-1">
-                  <div class="flex-1 h-full rounded-full bg-[#2563EB]"></div>
-                  <div class="flex-1 h-full rounded-full bg-[#E2E8F0]"></div>
-                  <div class="flex-1 h-full rounded-full bg-[#E2E8F0]"></div>
-                  <div class="flex-1 h-full rounded-full bg-[#E2E8F0]"></div>
-                  <div class="flex-1 h-full rounded-full bg-[#E2E8F0]"></div>
-                </div>
-                <span class="text-[11px] text-on-surface-variant font-semibold shrink-0">Stage 1 of 5 &middot; Pending Dispatch</span>
-              </div>
-              <div class="flex items-center justify-between gap-2 pt-0.5 border-t border-surface-variant/30 text-[12px]">
-                <div class="flex items-center gap-1 text-on-surface-variant truncate">
-                  <span class="material-symbols-outlined text-[15px] text-outline shrink-0">location_on</span>
-                  <span class="truncate">Room A1-202 &middot; General Facility (Wall Socket) &middot; Awaiting assignment</span>
-                </div>
-                <a href="<?= BASE_URL ?>/user/tickets/detail/3" class="inline-flex items-center gap-0.5 font-semibold text-[#2563EB] hover:underline shrink-0 text-[12px]">
+                <a href="<?= BASE_URL ?>/user/tickets/detail/6" class="inline-flex items-center gap-0.5 font-semibold text-secondary hover:underline shrink-0 text-[12px]">
                   <span>View Details</span>
                   <span class="material-symbols-outlined text-[15px]">arrow_forward</span>
                 </a>
