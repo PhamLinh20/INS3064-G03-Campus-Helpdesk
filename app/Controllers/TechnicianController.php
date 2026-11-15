@@ -15,4 +15,9 @@ class TechnicianController extends Controller {
         ];
         $this->view('technician/dashboard', $data);
     }
+
+    public function profile(): void {
+        header('Location: ' . BASE_URL . '/auth/profile');
+        exit;
+    }
 }

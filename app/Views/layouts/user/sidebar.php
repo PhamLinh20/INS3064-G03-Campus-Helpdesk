@@ -70,7 +70,7 @@ if (empty($userInitials)) {
       </a>
 
       <!-- Profile -->
-      <a href="<?= BASE_URL ?>/user/profile"
+      <a href="<?= BASE_URL ?>/auth/profile"
          class="flex items-center justify-between px-space-md py-space-sm rounded-lg transition-colors <?= ($currentNav === 'profile') ? 'bg-surface-container-lowest/15 text-surface-container-lowest font-body-medium' : 'text-surface-container-highest/80 hover:bg-surface-container-lowest/10 hover:text-surface-container-lowest' ?>">
         <div class="flex items-center gap-space-sm">
           <span class="material-symbols-outlined text-[20px]">account_circle</span>

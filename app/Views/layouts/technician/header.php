@@ -225,7 +225,7 @@ if (empty($userInitials)) $userInitials = 'NDA';
 
       <!-- Dropdown Menu (Theo yêu cầu: Chỉ để My Profile và Logout) -->
       <div id="tech-user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-surface-container-lowest rounded-xl shadow-lg border border-surface-variant/40 py-1.5 z-50">
-        <a href="<?= BASE_URL ?>/technician/profile" class="flex items-center gap-2.5 px-3.5 py-2.5 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors font-medium">
+        <a href="<?= BASE_URL ?>/auth/profile" class="flex items-center gap-2.5 px-3.5 py-2.5 text-body-sm text-on-surface hover:bg-surface-container-low transition-colors font-medium">
           <span class="material-symbols-outlined text-[18px] text-on-surface-variant">person</span>
           <span>My Profile</span>
         </a>

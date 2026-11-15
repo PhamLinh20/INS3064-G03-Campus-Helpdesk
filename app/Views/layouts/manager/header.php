@@ -212,21 +212,20 @@ if (empty($userInitials)) $userInitials = 'TTM';
 
     <!-- Avatar with Dropdown Trigger & Chevron Indicator -->
     <div class="relative pl-space-sm" id="mgr-user-menu-container">
-      <button id="mgr-user-menu-btn" type="button" class="flex items-center gap-2 py-1 px-1.5 rounded-xl hover:bg-surface-container-low transition-colors cursor-pointer focus:outline-none select-none">
-        <div class="w-8 h-8 rounded-full bg-secondary-fixed text-primary font-semibold text-[12px] flex items-center justify-center shrink-0">
-          <?= htmlspecialchars($userInitials) ?>
-        </div>
-        <div class="hidden xl:flex flex-col text-left leading-tight">
-          <span class="text-[13px] text-on-surface font-semibold leading-tight"><?= htmlspecialchars($userName) ?></span>
+      <button id="mgr-user-menu-btn" type="button" title="<?= htmlspecialchars($userName . ' (' . $userCode . ')') ?>"
+              class="flex items-center gap-3 py-1 pl-2 pr-1 rounded-xl hover:bg-surface-container-low transition-colors cursor-pointer focus:outline-none select-none">
+        <div class="hidden sm:flex flex-col text-right leading-tight">
+          <span class="text-[14px] text-on-surface font-bold leading-tight"><?= htmlspecialchars($userName) ?></span>
           <span class="text-[11px] text-on-surface-variant leading-tight"><?= htmlspecialchars($userCode) ?> &middot; <?= htmlspecialchars($userRole) ?></span>
         </div>
-        <!-- Dấu click dropdown cạnh avatar -->
-        <span id="mgr-user-chevron" class="material-symbols-outlined text-[18px] text-on-surface-variant transition-transform duration-200">expand_more</span>
+        <div class="w-9 h-9 rounded-full bg-primary text-white flex items-center justify-center shrink-0">
+          <span class="material-symbols-outlined text-[20px]">person</span>
+        </div>
       </button>
 
       <!-- Dropdown Menu (Chỉ để My Profile và Logout theo yêu cầu) -->
       <div id="mgr-user-dropdown" class="hidden absolute right-0 mt-2 w-48 bg-surface-container-lowest rounded-xl shadow-lg border border-surface-variant/40 py-1.5 z-50">
-        <a href="<?= BASE_URL ?>/manager/profile" class="flex items-center gap-2.5 px-3.5 py-2.5 text-body-default text-on-surface hover:bg-surface-container-low transition-colors font-medium">
+        <a href="<?= BASE_URL ?>/auth/profile" class="flex items-center gap-2.5 px-3.5 py-2.5 text-body-default text-on-surface hover:bg-surface-container-low transition-colors font-medium">
           <span class="material-symbols-outlined text-[18px] text-on-surface-variant">person</span>
           <span>My Profile</span>
         </a>

@@ -26,8 +26,13 @@ class App {
         // 1. XỬ LÝ CONTROLLER:
         // ----------------------------------------------------------------------
         if (!empty($url[0])) {
-            // Chuyển chuỗi thành định dạng tên Class (Ví dụ: 'ticket' -> 'TicketController')
-            $controllerName = ucfirst($url[0]) . 'Controller';
+            // Ánh xạ URL ngắn sang controller khi tên class không suy ra được bằng ucfirst.
+            // /master/classrooms -> MasterDataController::classrooms()
+            $aliases = [
+                'master' => 'MasterDataController',
+            ];
+            $segment = strtolower($url[0]);
+            $controllerName = $aliases[$segment] ?? (ucfirst($url[0]) . 'Controller');
 
             if (file_exists(APPROOT . '/app/Controllers/' . $controllerName . '.php')) {
                 $this->controller = $controllerName;
@@ -48,6 +53,10 @@ class App {
                 $this->action = $url[1];
                 unset($url[1]); // Loại bỏ phần tử sau khi đã xử lý
             }
+        } elseif (method_exists($this->controller, 'index')) {
+            // /master không có action: vào index() nếu controller có hàm đó.
+            // /auth vẫn gọi login() vì AuthController không khai báo index().
+            $this->action = 'index';
         }
 
         // ----------------------------------------------------------------------
